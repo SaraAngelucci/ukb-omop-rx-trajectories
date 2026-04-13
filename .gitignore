@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data and outputs
+outputs/*
+!outputs/.gitkeep
+
+# OS
+.DS_Store
+
+# Environment
+.env
+.venv/
+venv/
+
+# Logs
+*.log
