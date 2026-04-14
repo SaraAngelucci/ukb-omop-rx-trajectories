@@ -101,8 +101,9 @@ def standardize_tables(tbl: dict) -> dict:
     if tbl["have_death"]:
         death = (
             tbl["death"]
-            .withColumn("death_date", F.to_date("death_date"))
-            .select("person_id", "death_date")
+            .withColumn("death_date", F.to_date("death_date", "dd/MM/yyyy"))
+            .groupBy("person_id")
+            .agg(F.min("death_date").alias("death_date"))
         )
     else:
         death = None
