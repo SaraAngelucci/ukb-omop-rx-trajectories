@@ -1,5 +1,12 @@
+import sys
+from pathlib import Path
 import argparse
 from pyspark.sql import SparkSession
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
 from thesis_rx.config import load_config, ensure_output_dir
 from thesis_rx.io import load_tables, standardize_tables
