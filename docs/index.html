@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ukb-omop-rx-trajectories</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      color: #24292e;
+      background: #fff;
+    }
+    h1 { font-size: 2rem; border-bottom: 1px solid #e1e4e8; padding-bottom: 0.4rem; }
+    h2 { font-size: 1.4rem; margin-top: 2rem; border-bottom: 1px solid #e1e4e8; padding-bottom: 0.3rem; }
+    h3 { font-size: 1.1rem; margin-top: 1.5rem; }
+    code {
+      background: #f6f8fa;
+      border-radius: 3px;
+      padding: 0.15em 0.4em;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #f6f8fa;
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    pre code { padding: 0; background: none; }
+    ul { padding-left: 1.5rem; }
+    li { margin: 0.3rem 0; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .subtitle {
+      color: #586069;
+      font-size: 1.1rem;
+      margin-top: -0.5rem;
+      margin-bottom: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ukb-omop-rx-trajectories</h1>
+  <p class="subtitle">
+    A reproducible PySpark pipeline for deriving prescription trajectories and
+    discontinuation phenotypes from UK Biobank OMOP data.
+  </p>
+
+  <p>
+    This repository contains a reproducible PySpark pipeline for deriving
+    person-level prescription trajectories and discontinuation phenotypes from
+    UK Biobank data represented in the OMOP Common Data Model (CDM).
+  </p>
+
+  <h2>Overview</h2>
+  <p>
+    The pipeline is designed for large-scale, drug-agnostic analysis of
+    longitudinal prescribing patterns. It uses:
+  </p>
+  <ul>
+    <li><code>omop_drug_era</code> as the primary exposure representation</li>
+    <li><code>omop_drug_exposure</code> for sensitivity analysis</li>
+    <li><code>omop_observation_period</code> for eligibility and censoring</li>
+    <li><code>omop_death</code> optionally for censoring</li>
+    <li>OMOP vocabulary tables (<code>CONCEPT</code>, <code>concept_ancestor</code>) for concept validation and ingredient mapping</li>
+  </ul>
+  <p>The outputs include:</p>
+  <ul>
+    <li>eligible participant tables</li>
+    <li>analysis-era tables</li>
+    <li>month-level treatment burden and turnover summaries</li>
+    <li>ingredient-level discontinuation events</li>
+    <li>person-level discontinuation phenotypes</li>
+    <li>unsupervised trajectory clusters</li>
+    <li>cluster summaries and top ingredients for interpretation</li>
+  </ul>
+
+  <h2>Scientific rationale</h2>
+  <p>
+    The primary analysis uses OMOP <code>drug_era</code>, which represents
+    continuous ingredient-level exposure episodes and is therefore appropriate
+    for trajectory analysis. The sensitivity analysis reconstructs eras from
+    <code>drug_exposure</code>, allowing explicit assessment of robustness to
+    exposure-processing assumptions.
+  </p>
+  <p>
+    The resulting phenotypes represent patterns of <strong>prescribed
+    exposure</strong> in primary care records. They should not be interpreted
+    as direct measures of dispensing or medication ingestion.
+  </p>
+
+  <h2>Data requirements</h2>
+  <p>Expected UK Biobank RAP inputs:</p>
+  <ul>
+    <li><code>OMOP/raw_data/omop_drug_era.csv.gz</code></li>
+    <li><code>OMOP/raw_data/omop_drug_exposure.csv.gz</code></li>
+    <li><code>OMOP/raw_data/omop_observation_period.csv.gz</code></li>
+    <li><code>OMOP/raw_data/omop_death.csv.gz</code> (optional)</li>
+    <li><code>ICB/OMOP/maps/athena_omop/CONCEPT.csv</code></li>
+    <li><code>ICB/OMOP/maps/athena_omop/concept_ancestor.csv</code></li>
+  </ul>
+
+  <h2>What is not used as a primary source</h2>
+  <p>
+    Helper files in <code>ICB/OMOP/</code> such as counts tables or joined
+    summaries are not used to derive phenotypes. Raw OMOP tables are treated
+    as the analytic source of truth.
+  </p>
+
+  <h2>Installation</h2>
+  <p>
+    In UK Biobank RAP, PySpark is typically preinstalled. Install the
+    remaining dependency:
+  </p>
+  <pre><code>pip install -r requirements.txt</code></pre>
+
+  <h2>Methodology</h2>
+
+  <h3>Study design</h3>
+  <p>
+    This project implements a retrospective longitudinal prescription analysis
+    pipeline in UK Biobank using data represented in the OMOP Common Data Model.
+  </p>
+
+  <h3>Primary exposure representation</h3>
+  <p>
+    The primary analysis uses <code>omop_drug_era</code>, which represents
+    inferred continuous ingredient-level exposure episodes. This is the
+    preferred OMOP representation for whole-person prescription trajectory
+    analysis because it reduces fragmentation of longitudinal exposure.
+  </p>
+
+  <h3>Sensitivity analysis</h3>
+  <p>
+    A secondary analysis reconstructs eras from <code>omop_drug_exposure</code>
+    by mapping <code>drug_concept_id</code> to ingredient ancestors and merging
+    overlapping or near-contiguous intervals using a 30-day gap rule.
+  </p>
+
+  <h3>Cohort definition</h3>
+  <p>Participants must have:</p>
+  <ul>
+    <li>at least one eligible drug record</li>
+    <li>at least 365 days of observation before the first eligible era</li>
+  </ul>
+  <p>Follow-up begins at the first eligible era and ends at the earliest of:</p>
+  <ul>
+    <li>end of observation</li>
+    <li>death, if available</li>
+    <li>24 months after index</li>
+  </ul>
+
+  <h3>Monthly prescription trajectories</h3>
+  <p>
+    Each participant's follow-up is divided into person-specific monthly
+    intervals. For each month, the pipeline derives:
+  </p>
+  <ul>
+    <li>number of active ingredients</li>
+    <li>number of starts</li>
+    <li>number of stops</li>
+    <li>month-to-month treatment turnover</li>
+  </ul>
+
+  <h3>Monthly states</h3>
+  <p>Each month is classified as one of:</p>
+  <ul>
+    <li>NoRx</li>
+    <li>Initiation</li>
+    <li>StableMono</li>
+    <li>StableLowPoly</li>
+    <li>StablePolypharmacy</li>
+    <li>Intensifying</li>
+    <li>Deintensifying</li>
+    <li>HighTurnover</li>
+  </ul>
+  <p>Polypharmacy is defined as 5 or more concurrent active ingredients.</p>
+
+  <h3>Discontinuation logic</h3>
+  <p>
+    Discontinuation is only evaluated for maintenance-eligible
+    participant–ingredient pairs:
+  </p>
+  <ul>
+    <li>at least 2 eras, or</li>
+    <li>at least 28 total era-days</li>
+  </ul>
+  <p>For these pairs, the pipeline calculates:</p>
+  <ul>
+    <li>restart within 180 days</li>
+    <li>switch within 60 days</li>
+    <li>early discontinuation of first era (&lt;90 days, no restart within 180 days)</li>
+  </ul>
+
+  <h3>Person-level phenotypes</h3>
+  <p>The following descriptive discontinuation phenotypes are assigned:</p>
+  <ul>
+    <li>Persistent stable use</li>
+    <li>Stable polypharmacy</li>
+    <li>Intermittent stop-start</li>
+    <li>High-turnover switching</li>
+    <li>Early drop-off / de-intensification</li>
+    <li>Mixed transition pattern</li>
+  </ul>
+
+  <h3>Clustering</h3>
+  <p>
+    Trajectories are summarized using burden, turnover, state proportions, and
+    discontinuation features, then clustered using K-means. The final number of
+    clusters is chosen by silhouette width.
+  </p>
+
+  <h3>Interpretation</h3>
+  <p>
+    The resulting phenotypes represent patterns of prescribed exposure captured
+    in primary care records. They should not be interpreted as direct measures
+    of dispensing or adherence.
+  </p>
+
+</body>
+</html>
