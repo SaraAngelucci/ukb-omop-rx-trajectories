@@ -1,6 +1,6 @@
 project:
   name: "ukb-omop-rx-trajectories"
-  output_dir: "/mnt/project/ukb-omop-rx-trajectories/outputs"
+  output_dir: "./outputs"
 
 paths:
   raw_dir: "file:///mnt/project/OMOP/raw_data"
@@ -12,7 +12,7 @@ files:
   observation_period: "omop_observation_period.csv.gz"
   death: "omop_death.csv.gz"
   concept: "CONCEPT.csv"
-  concept_ancestor: "concept_ancestor.csv"
+  concept_ancestor: "CONCEPT_ANCESTOR.csv"
 
 csv:
   header: true
