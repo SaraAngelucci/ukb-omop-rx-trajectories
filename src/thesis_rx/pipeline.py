@@ -184,7 +184,7 @@ def run_trajectory_pipeline(era_input_df, observation_period, death, have_death,
     top_n = cfg["run"]["save_top_ingredients_per_cluster"]
 
     eligible = build_eligible_from_eras(
-        era_input_df=era_input_df,
+        era_df=era_input_df,
         observation_period=observation_period,
         death=death,
         have_death=have_death,

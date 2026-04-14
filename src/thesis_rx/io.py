@@ -46,10 +46,14 @@ def load_tables(spark: SparkSession, cfg: dict) -> dict:
 
 
 def standardize_tables(tbl: dict) -> dict:
+    for k in ["drug_era", "drug_exposure", "observation_period", "death"]:
+        if tbl.get(k) is not None and "eid" in tbl[k].columns:
+            tbl[k] = tbl[k].withColumnRenamed("eid", "person_id")
+
     drug_era = (
         tbl["drug_era"]
-        .withColumn("drug_era_start_date", F.to_date("drug_era_start_date"))
-        .withColumn("drug_era_end_date", F.to_date("drug_era_end_date"))
+        .withColumn("drug_era_start_date", F.to_date("drug_era_start_date", "dd/MM/yyyy"))
+        .withColumn("drug_era_end_date", F.to_date("drug_era_end_date", "dd/MM/yyyy"))
         .select(
             "person_id",
             F.col("drug_concept_id").alias("ingredient_concept_id"),
@@ -65,8 +69,8 @@ def standardize_tables(tbl: dict) -> dict:
 
     drug_exposure = (
         tbl["drug_exposure"]
-        .withColumn("drug_exposure_start_date", F.to_date("drug_exposure_start_date"))
-        .withColumn("drug_exposure_end_date", F.to_date("drug_exposure_end_date"))
+        .withColumn("drug_exposure_start_date", F.to_date("drug_exposure_start_date", "dd/MM/yyyy"))
+        .withColumn("drug_exposure_end_date", F.to_date("drug_exposure_end_date", "dd/MM/yyyy"))
         .select(
             "person_id",
             "drug_concept_id",
