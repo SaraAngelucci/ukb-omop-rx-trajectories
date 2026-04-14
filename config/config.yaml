@@ -1,6 +1,6 @@
 project:
   name: "ukb-omop-rx-trajectories"
-  output_dir: "/mnt/project/thesis_rx"
+  output_dir: "/mnt/project/ukb-omop-rx-trajectories/outputs"
 
 paths:
   raw_dir: "file:///mnt/project/OMOP/raw_data"
